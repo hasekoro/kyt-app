@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYT-Lab | 工業高校向け危険予知トレーニング</title>
+    
+    <!-- 【外部ライブラリの読み込み】 -->
+    <!-- Tailwind CSS: ユーティリティファーストのCSSフレームワーク -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome: アイコン表示用ライブラリ -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: 日本語フォント (Noto Sans JP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- React & ReactDOM: UI構築用ライブラリ (UMD版) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone: JSX構文をブラウザ上でJavaScriptに変換するためのトランスパイラ -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- html2pdf.js: KYTシートをPDF出力・ダウンロードするためのライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- 【Firebase 初期化設定 (ES Module)】 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 環境変数からAppIDおよびFirebase設定を取得（未定義の場合はテスト用デフォルト値を使用）
+       <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXobhm4V5DxpMY4CyxLb2PeyPbuvoDYII",
+    authDomain: "kyt-learning-app.firebaseapp.com",
+    projectId: "kyt-learning-app",
+    storageBucket: "kyt-learning-app.firebasestorage.app",
+    messagingSenderId: "759933092191",
+    appId: "1:759933092191:web:5ea7b9699e6f9e020eb6ea",
+    measurementId: "G-JTEJDQENWN"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+
+        // Firebaseアプリおよび認証・データベースインスタンスの初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // React層からFirebase機能へアクセスできるようグローバルオブジェクト(window.FirebaseApp)に登録
+        window.FirebaseApp = {
+            appId,
+            auth,
+            db,
+            doc,
+            getDoc,
+            addDoc,
+            setDoc,
+            updateDoc,
+            deleteDoc,
+            onSnapshot,
+            collection,
+            signInAnonymously,
+            signInWithCustomToken,
+            onAuthStateChanged
+        };
+
+        // Firebaseの準備完了イベントを発火
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
+    <script>
+        // Tailwind CSSのカスタムテーマ設定（カラーパレット拡張など）
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans JP', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fffbebe',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                        },
+                        industrial: {
+                            dark: '#1e293b',
+                            accent: '#2563eb',
+                            danger: '#ef4444',
+                            warning: '#eab308',
+                            success: '#22c55e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 基本背景・フォント設定 */
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f1f5f9;
+        }
+        /* 付箋風カードのスタイルとホバーアニメーション */
+        .sticky-note {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 3px 4px 10px rgba(0,0,0,0.12);
+        }
+        .sticky-note:hover {
+            transform: translateY(-3px) rotate(1deg);
+            shadow: 5px 8px 15px rgba(0,0,0,0.18);
+        }
+        /* 危険箇所ピン(ホットスポット)の波紋パルスアニメーション */
+        @keyframes pulse-pin {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .hotspot-pin {
+            animation: pulse-pin 2s infinite;
+        }
+        /* PDF出力・印刷用のスタイル定義 */
+        @media print {
+            body { background: white; color: black; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+    <!-- Reactアプリがマウントされるルート要素 -->
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // 【初期KYT問題データセット（機械・電気・建築・化学などの標準サンプル）】
+        const INITIAL_PROBLEMS = [
+            {
+                id: 'p1',
+                title: '機械科：汎用旋盤での切削加工手順',
+                category: '機械科',
+                author: '実習指導教員',
+                date: '2026-09-01',
+                description: '旋盤を用いて丸棒の端面・外径削りを行っている作業現場です。不適切な装具や作業姿勢が潜んでいます。',
+                imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80',
+                hotspots: [
+                    { id: 'h1', x: 48, y: 42, title: '手袋の着用', risk: '旋盤の主軸回転部に手袋が巻き込まれ、重傷を負う危険がある。', countermeasure: '回転機械作業では手袋を禁止し、素手で作業する。' },
+                    { id: 'h2', x: 62, y: 58, title: '保護メガネ非着用', risk: '切削チップや高温の切粉が目に飛び込み、失明や眼球火傷の危険がある。', countermeasure: '必ず保護メガネを隙間なく着用して作業する。' },
+                    { id: 'h3', x: 30, y: 75, title: '足元の切りくず', risk: '長くなった切粉を踏んで足を滑らせたり、切粉で足を切る危険がある。', countermeasure: 'フック等を用いて定期的に切粉を除去し整理整頓する。' }
+                ]
+            },
+            {
+                id: 'p2',
+                title: '電気科：配電盤の生線作業・測定チェック',
+                category: '電気科',
+                author: '電気実習室',
+                date: '2026-09-03',
+                description: '受電設備および動力配電盤の点検作業中です。検電器の使用確認や絶縁保護具に注目してください。',
+                imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1000&q=80',
+                hotspots: [
+                    { id: 'h1', x: 52, y: 35, title: '無着手検電の省略', risk: '充電部に素手で触れ、感電（心臓麻痺や重度火傷）を起こす危険がある。', countermeasure: '作業前に必ず検電器を用いて停電（無電圧）を確認する。' },
+                    { id: 'h2', x: 35, y: 65, title: '絶縁用保護具の未着用', risk: '感電事故発生時に電流が体を通って地面へ流れる危険がある。', countermeasure: '電気用ヘルメット・絶縁手袋・絶縁靴を完備する。' }
+                ]
+            },
+            {
+                id: 'p3',
+                title: '建築・土木科：脚立を使用した高所作業',
+                category: '建築・土木科',
+                author: '施工技術研究班',
+                date: '2026-09-05',
+                description: '天板に立って上部構造物の取付作業を行っています。脚立の正しい使用方法を再確認しましょう。',
+                imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1000&q=80',
+                hotspots: [
+                    { id: 'h1', x: 45, y: 28, title: '脚立天板への乗込み', risk: 'バランスを崩して脚立ごと倒れ、頭部から墜落する危険がある。', countermeasure: '天板の上には絶対に乗らない。天板を含め上から2段目以下で作業。' },
+                    { id: 'h2', x: 55, y: 70, title: '開き止め金具の未ロック', risk: '脚立が開いて踏みざんがはずれ、転倒する危険がある。', countermeasure: '脚立の開き止め金具を確実にロックしてから昇降する。' }
+                ]
+            },
+            {
+                id: 'p4',
+                title: '化学科：ドラフト外での試薬調製作業',
+                category: '化学科',
+                author: '環境化学科教室',
+                date: '2026-09-06',
+                description: '有機溶剤を含む試薬の混合・滴定作業を行っています。換気設備や防護服の適切性を確認してください。',
+                imageUrl: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1000&q=80',
+                hotspots: [
+                    { id: 'h1', x: 50, y: 48, title: '局所排気装置（ドラフト）未使用', risk: '有害な有機溶剤蒸気を吸入し、急性中毒や目まいを起こす危険がある。', countermeasure: '有機溶剤の使用は必ずドラフトチャンバー内で行い局排を作動させる。' }
+                ]
+            }
+        ];
+
+        function App() {
+            // --- 【ステート（状態管理）定義】 ---
+            
+            // KYT問題リスト (ローカルストレージおよびクラウドと連動)
+            const [problems, setProblems] = React.useState(() => {
+                const saved = localStorage.getItem('kyt_problems');
+                return saved ? JSON.parse(saved) : INITIAL_PROBLEMS;
+            });
+            
+            // 学科フィルタおよび現在表示中のタブ画面
+            const [selectedCategory, setSelectedCategory] = React.useState('すべて');
+            const [currentTab, setCurrentTab] = React.useState('library'); // 'library' | 'check_mode' | 'workshop_mode' | 'create_problem' | 'feedback' | 'export_preview'
+            const [selectedProblem, setSelectedProblem] = React.useState(INITIAL_PROBLEMS[0]);
+            
+            // Firebase 認証・リアルタイム接続フラグ
+            const [user, setUser] = React.useState(null);
+            const [dbReady, setDbReady] = React.useState(false);
+            const [isSyncing, setIsSyncing] = React.useState(false);
+
+            // 4Rグループ学習室・ユーザー役割ステート
+            const [roomCode, setRoomCode] = React.useState('1004');
+            const [inputRoomCode, setInputRoomCode] = React.useState('1004');
+            const [userName, setUserName] = React.useState('工業太郎');
+            const [userRole, setUserRole] = React.useState('進行役'); // 進行役, 記録役, メンバー
+            const [groupMembers, setGroupMembers] = React.useState([
+                { name: '工業太郎', role: '進行役' },
+                { name: '高専花子', role: '記録役' },
+                { name: '愛知一郎', role: 'メンバー' },
+                { name: '名城次郎', role: 'メンバー' }
+            ]);
+
+            // 危険チェックモードで選択中のピン(ホットスポット)
+            const [activeHotspot, setActiveHotspot] = React.useState(null);
+
+            // --- 4R（4ラウンド）ワークショップ状態データ ---
+            // 1R: 現状把握 (投稿された危険要因付箋)
+            const [r1Notes, setR1Notes] = React.useState([
+                { id: 1, author: '工業太郎', text: '主軸回転中に軍手を使って作業している', dangerPoint: true },
+                { id: 2, author: '高専花子', text: '保護メガネをしていないので切粉が目に入る', dangerPoint: false },
+                { id: 3, author: '愛知一郎', text: '足元に切粉が散乱していて滑りそう', dangerPoint: false }
+            ]);
+            // 2R: 本質追求 (絞り込んだ危険のポイント)
+            const [r2KeyDanger, setR2KeyDanger] = React.useState('軍手が旋盤の回転部に巻き込まれ、指や手を骨折・切断する危険がある（危険のポイント）');
+            // 3R: 対策樹立 (具体的な対策案)
+            const [r3Notes, setR3Notes] = React.useState([
+                { id: 1, author: '名城次郎', text: '旋盤作業時は軍手を脱いで素手で作業する' },
+                { id: 2, author: '工業太郎', text: '作業前チェックシートで服装を相互確認する' }
+            ]);
+            // 4R: 目標設定 (チーム行動目標 & 指さし呼称)
+            const [r4TeamGoal, setR4TeamGoal] = React.useState('回転作業は素手で実施、着衣ヨシ！');
+            const [r4ActionItem, setR4ActionItem] = React.useState('旋盤操作前に「手袋はずして素手ヨシ！」と指さし呼称を行う。');
+
+            // 問題新規登録時の画像プレビューデータ
+            const [previewImage, setPreviewImage] = React.useState('');
+
+            // 先生・他グループからのフィードバック評価データ
+            const [sheetFeedbacks, setSheetFeedbacks] = React.useState([
+                { id: 1, author: '実習担当：佐藤先生', role: '教員', rating: 5, comment: '2Rの本質追求が非常に明確にまとめられています。指さし呼称の具体性もGoodです！', date: '2026-09-08' },
+                { id: 2, author: '3班（機械科）', role: '他グループ', rating: 4, comment: '足元の整理整頓に関する対策も4Rに入れておくとより良いと思います！', date: '2026-09-09' }
+            ]);
+            const [newFeedbackText, setNewFeedbackText] = React.useState('');
+            const [newRating, setNewRating] = React.useState(5);
+
+            // トースト通知メッセージ制御
+            const [toastMessage, setToastMessage] = React.useState('');
+
+            // トーストメッセージ表示用ヘルパー関数
+            const showToast = (msg) => {
+                setToastMessage(msg);
+                setTimeout(() => setToastMessage(''), 3000);
+            };
+
+            // --- 【Firebase 匿名認証の初期化エフェクト】 ---
+            React.useEffect(() => {
+                const initAuth = async () => {
+                    if (!window.FirebaseApp) {
+                        window.addEventListener('firebase-ready', initAuth, { once: true });
+                        return;
+                    }
+                    const { auth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } = window.FirebaseApp;
+                    
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (err) {
+                        console.warn("カスタムトークン認証に失敗。匿名認証へフォールバックします:", err);
+                        try { await signInAnonymously(auth); } catch(e){ console.error(e); }
+                    }
+
+                    onAuthStateChanged(auth, (u) => {
+                        if (u) {
+                            setUser(u);
+                            setDbReady(true);
+                        }
+                    });
+                };
+                initAuth();
+            }, []);
+
+            // --- 【Firestore：KYT問題データのリアルタイム自動同期】 ---
+            React.useEffect(() => {
+                if (!dbReady || !user || !window.FirebaseApp) return;
+                const { db, collection, onSnapshot, appId } = window.FirebaseApp;
+                const problemsCol = collection(db, 'artifacts', appId, 'public', 'data', 'kyt_problems');
+
+                const unsubscribe = onSnapshot(
+                    problemsCol,
+                    (snapshot) => {
+                        const cloudProbs = [];
+                        snapshot.forEach(docSnap => {
+                            cloudProbs.push({ id: docSnap.id, ...docSnap.data() });
+                        });
+                        if (cloudProbs.length > 0) {
+                            // クラウドデータと初期デフォルトデータをマージ
+                            const merged = [...cloudProbs, ...INITIAL_PROBLEMS.filter(p => !cloudProbs.some(cp => cp.id === p.id))];
+                            setProblems(merged);
+                        }
+                    },
+                    (error) => {
+                        console.error("Firestore 問題データ同期エラー:", error);
+                    }
+                );
+                return () => unsubscribe();
+            }, [dbReady, user]);
+
+            // --- 【Firestore：ルームデータ(4Rワークシート)のリアルタイム自動同期】 ---
+            React.useEffect(() => {
+                if (!dbReady || !user || !window.FirebaseApp || !roomCode) return;
+                const { db, doc, onSnapshot, appId } = window.FirebaseApp;
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'kyt_rooms', roomCode);
+
+                const unsubscribe = onSnapshot(
+                    roomRef,
+                    (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            if (data.r1Notes) setR1Notes(data.r1Notes);
+                            if (data.r2KeyDanger !== undefined) setR2KeyDanger(data.r2KeyDanger);
+                            if (data.r3Notes) setR3Notes(data.r3Notes);
+                            if (data.r4TeamGoal !== undefined) setR4TeamGoal(data.r4TeamGoal);
+                            if (data.r4ActionItem !== undefined) setR4ActionItem(data.r4ActionItem);
+                            if (data.groupMembers) setGroupMembers(data.groupMembers);
+                            if (data.selectedProblemId) {
+                                const found = problems.find(p => p.id === data.selectedProblemId);
+                                if (found) setSelectedProblem(found);
+                            }
+                        }
+                    },
+                    (error) => {
+                        console.error("Firestore ルームデータ同期エラー:", error);
+                    }
+                );
+                return () => unsubscribe();
+            }, [dbReady, user, roomCode, problems]);
+
+            // --- 【Firestore：フィードバック・評価データのリアルタイム自動同期】 ---
+            React.useEffect(() => {
+                if (!dbReady || !user || !window.FirebaseApp || !roomCode) return;
+                const { db, collection, onSnapshot, appId } = window.FirebaseApp;
+                const feedbackCol = collection(db, 'artifacts', appId, 'public', 'data', 'kyt_feedbacks');
+
+                const unsubscribe = onSnapshot(
+                    feedbackCol,
+                    (snapshot) => {
+                        const roomFeedbacks = [];
+                        snapshot.forEach(docSnap => {
+                            const data = docSnap.data();
+                            if (data.roomCode === roomCode) {
+                                roomFeedbacks.push({ id: docSnap.id, ...data });
+                            }
+                        });
+                        if (roomFeedbacks.length > 0) {
+                            setSheetFeedbacks(roomFeedbacks);
+                        }
+                    },
+                    (error) => {
+                        console.error("Firestore フィードバック同期エラー:", error);
+                    }
+                );
+                return () => unsubscribe();
+            }, [dbReady, user, roomCode]);
+
+            // ルームの編集内容をクラウド(Firestore)へ保存する共通処理
+            const syncRoomData = async (updatedFields) => {
+                if (!dbReady || !user || !window.FirebaseApp || !roomCode) return;
+                setIsSyncing(true);
+                try {
+                    const { db, doc, setDoc, appId } = window.FirebaseApp;
+                    const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'kyt_rooms', roomCode);
+                    await setDoc(roomRef, {
+                        roomCode,
+                        r1Notes,
+                        r2KeyDanger,
+                        r3Notes,
+                        r4TeamGoal,
+                        r4ActionItem,
+                        groupMembers,
+                        selectedProblemId: selectedProblem?.id || 'p1',
+                        updatedAt: new Date().toISOString(),
+                        ...updatedFields
+                    }, { merge: true });
+                } catch (err) {
+                    console.error("ルームデータのクラウド保存に失敗:", err);
+                } finally {
+                    setIsSyncing(false);
+                }
+            };
+
+            // ローカルストレージバックアップ保存
+            React.useEffect(() => {
+                localStorage.setItem('kyt_problems', JSON.stringify(problems));
+            }, [problems]);
+
+            // ワンタップでグループ内の役割（進行役・記録役など）をランダムにシャッフル割り当て
+            const handleRandomRoles = () => {
+                const roles = ['進行役', '記録役', 'メンバー', 'メンバー'];
+                const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
+                const updated = groupMembers.map((m, idx) => ({
+                    ...m,
+                    role: shuffledRoles[idx % shuffledRoles.length]
+                }));
+                setGroupMembers(updated);
+                const me = updated.find(m => m.name === userName);
+                if (me) setUserRole(me.role);
+                syncRoomData({ groupMembers: updated });
+                showToast('🎲 役割をランダムに再割り当て（クラウド同期完了）');
+            };
+
+            // 専門学科フィルタカテゴリ
+            const categories = ['すべて', '機械科', '電気科', '建築・土木科', '化学科', '共通'];
+
+            // 選択されている学科タグに応じた表示対象問題のフィルタリング
+            const filteredProblems = selectedCategory === 'すべて' 
+                ? problems 
+                : problems.filter(p => p.category === selectedCategory);
+
+            return (
+                <div className="flex-1 flex flex-col min-h-screen">
+                    {/* Header */}
+                    <header className="bg-industrial-dark text-white shadow-lg sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+                            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setCurrentTab('library')}>
+                                <div className="w-10 h-10 bg-brand-500 rounded-lg flex items-center justify-center font-black text-2xl text-slate-900 shadow-md">
+                                    <i className="fa-solid fa-triangle-exclamation"></i>
+                                </div>
+                                <div>
+                                    <h1 className="font-bold text-xl tracking-tight flex items-center gap-2">
+                                        KYT-Lab <span className="text-xs px-2 py-0.5 bg-brand-500 text-slate-900 rounded font-black">工業高校版</span>
+                                    </h1>
+                                    <p className="text-xs text-slate-400">危険予知トレーニング 協調学習システム</p>
+                                </div>
+                            </div>
+
+                            {/* Room Status & Cloud Sync Indicator */}
+                            <div className="flex flex-wrap items-center bg-slate-800 rounded-xl px-4 py-2 border border-slate-700 gap-3 text-sm">
+                                {/* Cloud Status Badge */}
+                                <div className="flex items-center gap-1.5 text-xs font-bold" title={dbReady ? "クラウド接続済み" : "接続中..."}>
+                                    <span className={`w-2.5 h-2.5 rounded-full ${dbReady ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                                    <span className="text-slate-300 hidden sm:inline">{dbReady ? 'クラウド連携済' : '接続中...'}</span>
+                                    {isSyncing && <i className="fa-solid fa-rotate text-brand-500 animate-spin text-xs"></i>}
+                                </div>
+
+                                <div className="h-4 w-px bg-slate-700 hidden sm:block"></div>
+
+                                {/* Room Code Input / Switch */}
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-slate-400 text-xs">ルーム:</span>
+                                    <input 
+                                        type="text"
+                                        value={inputRoomCode}
+                                        onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
+                                        className="w-16 bg-slate-900 text-brand-100 font-mono font-bold text-center px-1.5 py-0.5 rounded border border-slate-700 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            if (inputRoomCode.trim()) {
+                                                setRoomCode(inputRoomCode.trim());
+                                                showToast(`ルーム ${inputRoomCode.trim()} に接続しました`);
+                                            }
+                                        }}
+                                        className="bg-brand-500 text-slate-950 px-2 py-0.5 rounded text-xs font-bold hover:bg-brand-600 transition"
+                                    >
+                                        切替
+                                    </button>
+                                </div>
+
+                                <div className="h-4 w-px bg-slate-700"></div>
+
+                                <div className="flex items-center gap-2">
+                                    <i className="fa-solid fa-user-gear text-brand-500"></i>
+                                    <span className="font-medium">{userName}</span>
+                                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-slate-700 text-brand-100 border border-slate-600">
+                                        {userRole}
+                                    </span>
+                                </div>
+
+                                <button 
+                                    onClick={handleRandomRoles} 
+                                    className="bg-slate-700 hover:bg-slate-600 text-xs px-2.5 py-1 rounded-lg text-slate-200 transition font-medium flex items-center gap-1 border border-slate-600"
+                                    title="ワンタップで進行役・記録役をランダム設定"
+                                >
+                                    <i className="fa-solid fa-dice text-brand-500"></i>
+                                    役割割り当て
+                                </button>
+                            </div>
+
+                            {/* Nav Buttons */}
+                            <nav className="flex space-x-1 sm:space-x-2">
+                                <button 
+                                    onClick={() => setCurrentTab('library')}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${currentTab === 'library' ? 'bg-brand-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
+                                >
+                                    <i className="fa-solid fa-book-open"></i>
+                                    <span className="hidden sm:inline">問題一覧</span>
+                                </button>
+                                <button 
+                                    onClick={() => setCurrentTab('check_mode')}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${currentTab === 'check_mode' ? 'bg-brand-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
+                                >
+                                    <i className="fa-solid fa-bullseye"></i>
+                                    <span className="hidden sm:inline">危険チェック</span>
+                                </button>
+                                <button 
+                                    onClick={() => setCurrentTab('workshop_mode')}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${currentTab === 'workshop_mode' ? 'bg-brand-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
+                                >
+                                    <i className="fa-solid fa-users-gear"></i>
+                                    <span className="hidden sm:inline">本格4Rワーク</span>
+                                </button>
+                                <button 
+                                    onClick={() => setCurrentTab('feedback')}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${currentTab === 'feedback' ? 'bg-brand-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
+                                >
+                                    <i className="fa-solid fa-comments"></i>
+                                    <span className="hidden sm:inline">評価・フィードバック</span>
+                                </button>
+                            </nav>
+                        </div>
+                    </header>
+
+                    {/* Notification Toast */}
+                    {toastMessage && (
+                        <div className="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 border border-slate-700 animate-bounce">
+                            <i className="fa-solid fa-circle-check text-brand-500 text-lg"></i>
+                            <span className="text-sm font-medium">{toastMessage}</span>
+                        </div>
+                    )}
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+                        {/* TAB 1: Problem Library */}
+                        {currentTab === 'library' && (
+                            <div className="space-y-6">
+                                {/* Top Banner */}
+                                <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 shadow-xl border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-6">
+                                    <div className="space-y-2 max-w-2xl">
+                                        <div className="inline-block px-3 py-1 bg-brand-500 text-slate-900 text-xs font-black rounded-full mb-1">
+                                            実習・現場の事故ゼロを目指す
+                                        </div>
+                                        <h2 className="text-2xl font-bold">専門学科の作業画像から危険を事前に予知！</h2>
+                                        <p className="text-slate-300 text-sm leading-relaxed">
+                                            工業高校の実習室で起こりやすいヒヤリハット事例を網羅。グループでルームを作成し、ピンポイントチェックや4R手法で安全意識を高めましょう。
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                                        <button 
+                                            onClick={() => setCurrentTab('create_problem')}
+                                            className="px-5 py-3 bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                                        >
+                                            <i className="fa-solid fa-plus-circle"></i>
+                                            新規KYT問題を追加
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Discipline Category Filter */}
+                                <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                                    <span className="text-sm font-bold text-slate-500 whitespace-nowrap mr-2">学科タグ:</span>
+                                    {categories.map((cat) => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setSelectedCategory(cat)}
+                                            className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${
+                                                selectedCategory === cat 
+                                                    ? 'bg-industrial-dark text-white shadow' 
+                                                    : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
+                                            }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Problem Cards Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                                    {filteredProblems.map((prob) => (
+                                        <div key={prob.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col justify-between">
+                                            <div>
+                                                <div className="relative h-56 bg-slate-100 overflow-hidden group">
+                                                    <img 
+                                                        src={prob.imageUrl} 
+                                                        alt={prob.title} 
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                                        onError={(e) => {
+                                                            e.target.src = 'https://placehold.co/800x500/1e293b/ffffff?text=KYT+Scene+Image';
+                                                        }}
+                                                    />
+                                                    <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-brand-100 text-xs font-bold px-3 py-1 rounded-full border border-slate-700">
+                                                        {prob.category}
+                                                    </span>
+                                                    <span className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
+                                                        <i className="fa-solid fa-location-dot mr-1"></i>
+                                                        危険ピン {(prob.hotspots && prob.hotspots.length) || 0}箇所
+                                                    </span>
+                                                </div>
+                                                <div className="p-5 space-y-3">
+                                                    <h3 className="font-bold text-lg text-slate-900 leading-snug">{prob.title}</h3>
+                                                    <p className="text-slate-600 text-sm line-clamp-2">{prob.description}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-5 pt-0 flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedProblem(prob);
+                                                        syncRoomData({ selectedProblemId: prob.id });
+                                                        setCurrentTab('workshop_mode');
+                                                    }}
+                                                    className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-slate-950 text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                                                >
+                                                    <i className="fa-solid fa-users text-slate-900"></i>
+                                                    4Rワーク開始
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {/* TAB 2: Quick Danger Check Mode */}
+                        {currentTab === 'check_mode' && (
+                            <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm gap-4">
+                                    <div>
+                                        <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-md border border-brand-100">
+                                            {selectedProblem.category}
+                                        </span>
+                                        <h2 className="text-xl font-bold text-slate-900 mt-1">{selectedProblem.title}</h2>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => setCurrentTab('library')}
+                                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition"
+                                        >
+                                            <i className="fa-solid fa-arrow-left mr-1"></i> 問題選択に戻る
+                                        </button>
+                                        <button 
+                                            onClick={() => setCurrentTab('workshop_mode')}
+                                            className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-slate-950 rounded-xl text-sm font-bold transition shadow-sm"
+                                        >
+                                            4Rワークで深掘り <i className="fa-solid fa-arrow-right ml-1"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* Image Canvas Container with Hotspots */}
+                                    <div className="lg:col-span-2 bg-slate-900 rounded-2xl p-4 shadow-md border border-slate-800 space-y-3">
+                                        <div className="flex justify-between items-center text-xs text-slate-400">
+                                            <span><i className="fa-solid fa-hand-pointer mr-1 text-brand-500"></i> 画像内の赤ピンをタップすると危険と対策が表示されます</span>
+                                            <span className="bg-slate-800 px-2.5 py-1 rounded text-slate-300">ピン数: {selectedProblem.hotspots.length}</span>
+                                        </div>
+
+                                        <div className="relative rounded-xl overflow-hidden bg-black select-none">
+                                            <img 
+                                                src={selectedProblem.imageUrl} 
+                                                alt={selectedProblem.title} 
+                                                className="w-full h-auto object-contain max-h-[600px] mx-auto block"
+                                                onError={(e) => {
+                                                    e.target.src = 'https://placehold.co/800x500/1e293b/ffffff?text=KYT+Scene+Image';
+                                                }}
+                                            />
+
+                                            {/* Hotspot Pins Overlay */}
+                                            {selectedProblem.hotspots.map((spot, index) => (
+                                                <button
+                                                    key={spot.id}
+                                                    onClick={() => setActiveHotspot(spot)}
+                                                    style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+                                                    className={`absolute -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full font-black text-sm flex items-center justify-center transition shadow-lg z-10 ${
+                                                        activeHotspot && activeHotspot.id === spot.id
+                                                            ? 'bg-yellow-400 text-slate-950 ring-4 ring-yellow-200 scale-125 z-20'
+                                                            : 'bg-red-600 text-white hotspot-pin hover:scale-110'
+                                                    }`}
+                                                >
+                                                    {index + 1}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Hotspot Details / Inspector Panel */}
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between space-y-4">
+                                        <div>
+                                            <h3 className="font-bold text-lg text-slate-900 pb-3 border-b border-slate-200 flex items-center gap-2">
+                                                <i className="fa-solid fa-clipboard-check text-brand-500"></i>
+                                                危険箇所・対策サマリー
+                                            </h3>
+
+                                            {activeHotspot ? (
+                                                <div className="mt-4 space-y-4 animate-fadeIn">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-7 h-7 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-sm">
+                                                            !
+                                                        </span>
+                                                        <h4 className="font-bold text-slate-900 text-base">{activeHotspot.title}</h4>
+                                                    </div>
+
+                                                    <div className="bg-red-50 p-4 rounded-xl border border-red-100 space-y-1">
+                                                        <div className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1">
+                                                            <i className="fa-solid fa-triangle-exclamation"></i> 潜んでいる危険
+                                                        </div>
+                                                        <p className="text-sm font-medium text-slate-800 leading-relaxed">
+                                                            {activeHotspot.risk}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 space-y-1">
+                                                        <div className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+                                                            <i className="fa-solid fa-shield-halved"></i> 模範的対策
+                                                        </div>
+                                                        <p className="text-sm font-medium text-slate-800 leading-relaxed">
+                                                            {activeHotspot.countermeasure}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="mt-12 text-center py-8 text-slate-400 space-y-2">
+                                                    <i className="fa-solid fa-hand-pointer text-4xl text-slate-300"></i>
+                                                    <p className="text-sm font-medium">画像上の数字ピンをタップすると<br/>危険内容と対策が表示されます。</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* All Hotspots Quick List */}
+                                        <div className="pt-4 border-t border-slate-200 space-y-2">
+                                            <span className="text-xs font-bold text-slate-500">発見されたポイント一覧:</span>
+                                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                                {selectedProblem.hotspots.map((spot, idx) => (
+                                                    <div 
+                                                        key={spot.id}
+                                                        onClick={() => setActiveHotspot(spot)}
+                                                        className={`p-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center justify-between ${
+                                                            activeHotspot && activeHotspot.id === spot.id 
+                                                                ? 'bg-slate-900 text-white' 
+                                                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                                        }`}
+                                                    >
+                                                        <span>ピン {idx + 1}: {spot.title}</span>
+                                                        <i className="fa-solid fa-chevron-right text-xs opacity-60"></i>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {/* TAB 3: 4R Workshop Mode */}
+                        {currentTab === 'workshop_mode' && (
+                            <div className="space-y-6">
+                                {/* Workshop Room Header */}
+                                <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-800 space-y-4">
+                                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-brand-500 text-slate-950 font-black text-xs px-2.5 py-0.5 rounded">
+                                                    4Rグループ学習室
+                                                </span>
+                                                <span className="text-slate-400 text-xs">課題: {selectedProblem.title}</span>
+                                            </div>
+                                            <h2 className="text-2xl font-black text-white mt-1">4R（4ラウンド）KYTトレーニングシート</h2>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <button 
+                                                onClick={() => setCurrentTab('export_preview')}
+                                                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-sm transition shadow flex items-center gap-2"
+                                            >
+                                                <i className="fa-solid fa-file-pdf"></i>
+                                                活動表PDF出力・プレビュー
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Member Role Cards Bar */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800">
+                                        {groupMembers.map((m, idx) => (
+                                            <div key={idx} className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/60 flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-xs font-bold text-white">{m.name}</p>
+                                                    <p className="text-[10px] text-slate-400">担当: <span className="text-brand-100 font-bold">{m.role}</span></p>
+                                                </div>
+                                                {m.role === '進行役' && <i className="fa-solid fa-bullhorn text-brand-500 text-xs" title="進行役"></i>}
+                                                {m.role === '記録役' && <i className="fa-solid fa-pen-to-square text-emerald-400 text-xs" title="記録役"></i>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 4R Steps Layout */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                                    {/* 1R: 危険の発見 (発見された危険アイデア付箋) */}
+                                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                                                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                                                    <span className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm">1R</span>
+                                                    現状把握（どんな危険が潜んでいるか）
+                                                </h3>
+                                            </div>
+                                            <p className="text-xs text-slate-500">全員で危険と思われる状態・行動を出し合います。</p>
+
+                                            {/* Add Sticky Note Input */}
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    id="r1Input"
+                                                    placeholder="危険と思われる要因を入力（例: 保護メガネ未着用）"
+                                                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && e.target.value.trim()) {
+                                                            const updated = [...r1Notes, { id: Date.now(), author: userName, text: e.target.value.trim(), dangerPoint: false }];
+                                                            setR1Notes(updated);
+                                                            syncRoomData({ r1Notes: updated });
+                                                            e.target.value = '';
+                                                            showToast('付箋をクラウドに投稿しました！');
+                                                        }
+                                                    }}
+                                                />
+                                                <button 
+                                                    onClick={() => {
+                                                        const el = document.getElementById('r1Input');
+                                                        if (el && el.value.trim()) {
+                                                            const updated = [...r1Notes, { id: Date.now(), author: userName, text: el.value.trim(), dangerPoint: false }];
+                                                            setR1Notes(updated);
+                                                            syncRoomData({ r1Notes: updated });
+                                                            el.value = '';
+                                                            showToast('付箋をクラウドに投稿しました！');
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold rounded-xl text-sm transition"
+                                                >
+                                                    投稿
+                                                </button>
+                                            </div>
+
+                                            {/* Sticky Notes Grid */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                                {r1Notes.map((note) => (
+                                                    <div 
+                                                        key={note.id} 
+                                                        className={`sticky-note p-3.5 rounded-xl border relative flex flex-col justify-between ${
+                                                            note.dangerPoint 
+                                                                ? 'bg-amber-100 border-amber-300 text-amber-950 font-medium ring-2 ring-amber-400' 
+                                                                : 'bg-yellow-50 border-yellow-200 text-slate-800'
+                                                        }`}
+                                                    >
+                                                        <p className="text-sm font-semibold leading-snug">{note.text}</p>
+                                                        <div className="mt-3 flex justify-between items-center pt-2 border-t border-black/5 text-[11px]">
+                                                            <span className="text-slate-500">投稿: {note.author}</span>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const updated = r1Notes.map(n => n.id === note.id ? {...n, dangerPoint: !n.dangerPoint} : n);
+                                                                    setR1Notes(updated);
+                                                                    syncRoomData({ r1Notes: updated });
+                                                                    showToast(note.dangerPoint ? '危険ポイント解除' : '⚠️ 2R本質追求の要点に指定しました');
+                                                                }}
+                                                                className={`px-2 py-0.5 rounded font-bold transition ${
+                                                                    note.dangerPoint 
+                                                                        ? 'bg-red-600 text-white' 
+                                                                        : 'bg-yellow-200 hover:bg-yellow-300 text-yellow-900'
+                                                                }`}
+                                                            >
+                                                                {note.dangerPoint ? '危険ポイント! (選択中)' : '要点に指定'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2R: 本質追求 (危険のポイント選定) */}
+                                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                                                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                                                    <span className="w-7 h-7 rounded-lg bg-red-600 text-white font-black flex items-center justify-center text-sm">2R</span>
+                                                    本質追求（これが危険のポイントだ）
+                                                </h3>
+                                            </div>
+                                            <p className="text-xs text-slate-500">1Rの中から最も重要な危険要因（危険のポイント）を絞り込み特定します。</p>
+
+                                            <div className="bg-red-50 p-4 rounded-xl border border-red-200 space-y-2">
+                                                <label className="text-xs font-bold text-red-700 block">
+                                                    <i className="fa-solid fa-triangle-exclamation mr-1"></i> 絞り込んだ「危険のポイント」:
+                                                </label>
+                                                <textarea 
+                                                    value={r2KeyDanger}
+                                                    onChange={(e) => {
+                                                        setR2KeyDanger(e.target.value);
+                                                        syncRoomData({ r2KeyDanger: e.target.value });
+                                                    }}
+                                                    rows="3"
+                                                    className="w-full p-3 bg-white border border-red-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                    placeholder="例: 回転部分に手袋が巻き込まれ、指を骨折する危険がある"
+                                                ></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 3R: 対策樹立 (具体策ブレスト) */}
+                                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                                                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                                                    <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-black flex items-center justify-center text-sm">3R</span>
+                                                    対策樹立（あなたならどうする）
+                                                </h3>
+                                            </div>
+                                            <p className="text-xs text-slate-500">2Rの危険ポイントに対する具体的で実現可能な対策案を出します。</p>
+
+                                            {/* Add Countermeasure Input */}
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    id="r3Input"
+                                                    placeholder="具体的な対策を入力（例: 旋盤操作は素手で行う）"
+                                                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && e.target.value.trim()) {
+                                                            const updated = [...r3Notes, { id: Date.now(), author: userName, text: e.target.value.trim() }];
+                                                            setR3Notes(updated);
+                                                            syncRoomData({ r3Notes: updated });
+                                                            e.target.value = '';
+                                                            showToast('対策アイデアを追加しました！');
+                                                        }
+                                                    }}
+                                                />
+                                                <button 
+                                                    onClick={() => {
+                                                        const el = document.getElementById('r3Input');
+                                                        if (el && el.value.trim()) {
+                                                            const updated = [...r3Notes, { id: Date.now(), author: userName, text: el.value.trim() }];
+                                                            setR3Notes(updated);
+                                                            syncRoomData({ r3Notes: updated });
+                                                            el.value = '';
+                                                            showToast('対策アイデアを追加しました！');
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition"
+                                                >
+                                                    投稿
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-2 pt-2">
+                                                {r3Notes.map((note) => (
+                                                    <div key={note.id} className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex justify-between items-center text-sm font-medium">
+                                                        <span className="text-slate-800">・ {note.text}</span>
+                                                        <span className="text-xs text-slate-500">提案: {note.author}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 4R: 目標設定 (チーム行動目標 & 指さし呼称) */}
+                                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                                                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                                                    <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white font-black flex items-center justify-center text-sm">4R</span>
+                                                    目標設定（私たちはこうする）
+                                                </h3>
+                                            </div>
+                                            <p className="text-xs text-slate-500">全員で実践する行動目標と、作業前に唱える指さし呼称を決めます。</p>
+
+                                            <div className="space-y-3">
+                                                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 space-y-2">
+                                                    <label className="text-xs font-bold text-emerald-800 block">
+                                                        <i className="fa-solid fa-bullseye mr-1"></i> チーム行動目標（「～して～ヨシ！」形式）:
+                                                    </label>
+                                                    <input 
+                                                        type="text"
+                                                        value={r4TeamGoal}
+                                                        onChange={(e) => {
+                                                            setR4TeamGoal(e.target.value);
+                                                            syncRoomData({ r4TeamGoal: e.target.value });
+                                                        }}
+                                                        className="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                        placeholder="例: 回転作業は素手で実施、着衣ヨシ！"
+                                                    />
+                                                </div>
+
+                                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                                                    <label className="text-xs font-bold text-slate-700 block">
+                                                        <i className="fa-solid fa-hand-point-right mr-1 text-brand-600"></i> 指さし呼称項目（ワンフレーズ）:
+                                                    </label>
+                                                    <input 
+                                                        type="text"
+                                                        value={r4ActionItem}
+                                                        onChange={(e) => {
+                                                            setR4ActionItem(e.target.value);
+                                                            syncRoomData({ r4ActionItem: e.target.value });
+                                                        }}
+                                                        className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                                                        placeholder="例: 旋盤前に手袋はずして素手ヨシ！"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {/* TAB 4: Create / Edit Custom KYT Problem */}
+                        {currentTab === 'create_problem' && (
+                            <div className="max-w-4xl mx-auto bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
+                                <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-900">新規KYT問題の追加</h2>
+                                        <p className="text-slate-500 text-sm">実習風景の画像やイラスト（ファイル選択またはURL）を投稿し、クラウドで保存・共有できます。</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setCurrentTab('library')}
+                                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition"
+                                    >
+                                        キャンセル
+                                    </button>
+                                </div>
+
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    const form = e.target;
+                                    const finalImage = previewImage || form.probImgUrl.value || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80';
+                                    
+                                    const newProb = {
+                                        id: 'p_' + Date.now(),
+                                        title: form.probTitle.value,
+                                        category: form.probCategory.value,
+                                        author: userName,
+                                        date: new Date().toISOString().slice(0,10),
+                                        description: form.probDesc.value,
+                                        imageUrl: finalImage,
+                                        hotspots: [
+                                            { id: 'h1', x: 50, y: 50, title: form.spotTitle.value || '危険個所', risk: form.spotRisk.value || '怪我をする危険がある', countermeasure: form.spotCounter.value || '保護具を着用する' }
+                                        ]
+                                    };
+
+                                    // Local update
+                                    setProblems([newProb, ...problems]);
+                                    setSelectedProblem(newProb);
+
+                                    // Firebase Cloud Save
+                                    if (dbReady && user && window.FirebaseApp) {
+                                        try {
+                                            const { db, collection, addDoc, appId } = window.FirebaseApp;
+                                            const problemsCol = collection(db, 'artifacts', appId, 'public', 'data', 'kyt_problems');
+                                            await addDoc(problemsCol, newProb);
+                                            showToast('☁️ 画像・問題をクラウドに正常保存しました！');
+                                        } catch (err) {
+                                            console.error("Cloud save error:", err);
+                                            showToast('ローカルに保存されました（クラウド保存エラー）');
+                                        }
+                                    } else {
+                                        showToast('新問題を追加登録しました！');
+                                    }
+
+                                    setCurrentTab('library');
+                                }} className="space-y-5">
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700">問題タイトル <span className="text-red-500">*</span></label>
+                                            <input 
+                                                required 
+                                                name="probTitle"
+                                                type="text" 
+                                                placeholder="例: 機械科：フライス盤での切粉処理作業"
+                                                className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700">学科カテゴリ <span className="text-red-500">*</span></label>
+                                            <select name="probCategory" className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium">
+                                                <option value="機械科">機械科</option>
+                                                <option value="電気科">電気科</option>
+                                                <option value="建築・土木科">建築・土木科</option>
+                                                <option value="化学科">化学科</option>
+                                                <option value="共通">共通</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Image Upload & URL Section */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-700 block">① 端末から画像をアップロード</label>
+                                            <input 
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setPreviewImage(reader.result);
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                                className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-500 file:text-slate-950 hover:file:bg-brand-600"
+                                            />
+                                            <p className="text-[10px] text-slate-400">スマホ・PCの写真やイラストを選択できます。</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-700 block">② または画像URLを指定</label>
+                                            <input 
+                                                name="probImgUrl"
+                                                type="url" 
+                                                placeholder="https://... (画像URLを入力)"
+                                                onChange={(e) => {
+                                                    if (e.target.value) setPreviewImage(e.target.value);
+                                                }}
+                                                className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                            />
+                                        </div>
+
+                                        {previewImage && (
+                                            <div className="md:col-span-2 mt-2">
+                                                <span className="text-xs font-bold text-slate-600 block mb-1">プレビュー表示:</span>
+                                                <img src={previewImage} alt="Preview" className="h-40 object-cover rounded-xl border border-slate-300 shadow-sm" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-700">作業内容の説明</label>
+                                        <textarea 
+                                            name="probDesc"
+                                            rows="2" 
+                                            placeholder="どのような作業を行っているシーンか分かりやすく記載してください。"
+                                            className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                        ></textarea>
+                                    </div>
+
+                                    {/* Primary Hotspot Data */}
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                                        <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                                            <i className="fa-solid fa-location-dot text-red-600"></i> 代表的な危険ピン設定（第1ポイント）
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <input name="spotTitle" placeholder="危険の名称 (例: 手袋着用)" className="p-2.5 bg-white border border-slate-300 rounded-lg text-xs" />
+                                            <input name="spotRisk" placeholder="潜んでいる危険" className="p-2.5 bg-white border border-slate-300 rounded-lg text-xs" />
+                                            <input name="spotCounter" placeholder="模範的対策" className="p-2.5 bg-white border border-slate-300 rounded-lg text-xs" />
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        type="submit"
+                                        className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold rounded-xl text-base shadow transition"
+                                    >
+                                        <i className="fa-solid fa-cloud-arrow-up mr-2"></i> クラウドにこの問題を追加・保存する
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+
+                        {}
+                        {/* TAB 5: Peer & Teacher Feedback */}
+                        {currentTab === 'feedback' && (
+                            <div className="max-w-4xl mx-auto space-y-6">
+                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                                    <div className="border-b border-slate-200 pb-3">
+                                        <h2 className="text-xl font-bold text-slate-900">先生・他グループからの評価＆コメント</h2>
+                                        <p className="text-xs text-slate-500">ルーム 【{roomCode}】 の活動表に対するレビュー履歴です。（クラウド同期中）</p>
+                                    </div>
+
+                                    {/* Reviews List */}
+                                    <div className="space-y-3">
+                                        {sheetFeedbacks.map((fb) => (
+                                            <div key={fb.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                                                            fb.role === '教員' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-800'
+                                                        }`}>
+                                                            {fb.role}
+                                                        </span>
+                                                        <span className="font-bold text-sm text-slate-900">{fb.author}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-amber-500 text-sm">
+                                                        {[...Array(fb.rating)].map((_, i) => (
+                                                            <i key={i} className="fa-solid fa-star"></i>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <p className="text-sm text-slate-800 leading-relaxed font-medium">{fb.comment}</p>
+                                                <p className="text-[10px] text-slate-400 text-right">{fb.date}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Add New Feedback Form */}
+                                    <div className="pt-4 border-t border-slate-200 space-y-3">
+                                        <h3 className="font-bold text-sm text-slate-800">新しいコメント・評価の投稿</h3>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-bold text-slate-600">評価（星数）:</span>
+                                            <div className="flex text-amber-500 gap-1 cursor-pointer">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <i 
+                                                        key={star} 
+                                                        onClick={() => setNewRating(star)}
+                                                        className={`fa-solid fa-star text-lg ${star <= newRating ? 'text-amber-500' : 'text-slate-300'}`}
+                                                    ></i>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text"
+                                                value={newFeedbackText}
+                                                onChange={(e) => setNewFeedbackText(e.target.value)}
+                                                placeholder="アドバイスや良かった点を入力してください..."
+                                                className="flex-1 p-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                            />
+                                            <button 
+                                                onClick={async () => {
+                                                    if (newFeedbackText.trim()) {
+                                                        const newFb = {
+                                                            id: 'fb_' + Date.now(),
+                                                            roomCode,
+                                                            author: userName,
+                                                            role: '他グループ',
+                                                            rating: newRating,
+                                                            comment: newFeedbackText,
+                                                            date: new Date().toISOString().slice(0,10)
+                                                        };
+                                                        setSheetFeedbacks([...sheetFeedbacks, newFb]);
+                                                        
+                                                        if (dbReady && user && window.FirebaseApp) {
+                                                            try {
+                                                                const { db, collection, addDoc, appId } = window.FirebaseApp;
+                                                                const feedbackCol = collection(db, 'artifacts', appId, 'public', 'data', 'kyt_feedbacks');
+                                                                await addDoc(feedbackCol, newFb);
+                                                            } catch(err) {
+                                                                console.error("Feedback cloud save error:", err);
+                                                            }
+                                                        }
+
+                                                        setNewFeedbackText('');
+                                                        showToast('フィードバックをクラウドに投稿しました！');
+                                                    }
+                                                }}
+                                                className="px-5 py-3 bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold rounded-xl text-sm transition shadow-sm"
+                                            >
+                                                送信
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 6: Official KYT Sheet PDF Preview & Print Layout */}
+                        {currentTab === 'export_preview' && (
+                            <div className="space-y-6 max-w-4xl mx-auto">
+                                <div className="no-print flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                    <button 
+                                        onClick={() => setCurrentTab('workshop_mode')}
+                                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition"
+                                    >
+                                        <i className="fa-solid fa-arrow-left mr-1"></i> ワークショップ編集に戻る
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            const element = document.getElementById('printable-kyt-sheet');
+                                            if (window.html2pdf) {
+                                                const opt = {
+                                                    margin:       10,
+                                                    filename:     `KYT_Sheet_Room_${roomCode}.pdf`,
+                                                    image:        { type: 'jpeg', quality: 0.98 },
+                                                    html2canvas:  { scale: 2 },
+                                                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                                                };
+                                                window.html2pdf().set(opt).from(element).save();
+                                            } else {
+                                                window.print();
+                                            }
+                                        }}
+                                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow transition flex items-center gap-2"
+                                    >
+                                        <i className="fa-solid fa-file-arrow-down"></i>
+                                        PDF保存 / 印刷
+                                    </button>
+                                </div>
+
+                                {/* Official KYT Printable Document Form */}
+                                <div id="printable-kyt-sheet" className="bg-white p-8 rounded-none sm:rounded-2xl shadow-lg border border-slate-300 space-y-6 text-slate-900">
+                                    {/* Sheet Title Bar */}
+                                    <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
+                                        <p className="text-xs font-bold tracking-widest text-slate-500">工業高校危険予知活動（KYT）記録表</p>
+                                        <h1 className="text-2xl font-black tracking-wider">4ラウンド KYT 活動シート</h1>
+                                    </div>
+
+                                    {/* Meta Header Grid */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs border border-slate-400 p-3 bg-slate-50 rounded">
+                                        <div><span className="font-bold text-slate-500">ルームNo:</span> {roomCode}</div>
+                                        <div><span className="font-bold text-slate-500">対象課題:</span> {selectedProblem.title}</div>
+                                        <div><span className="font-bold text-slate-500">実施日:</span> {new Date().toISOString().slice(0,10)}</div>
+                                        <div><span className="font-bold text-slate-500">学科:</span> {selectedProblem.category}</div>
+                                    </div>
+
+                                    {/* Member Roles Summary */}
+                                    <div className="text-xs border border-slate-300 p-3 rounded space-y-1">
+                                        <span className="font-bold text-slate-700">参加メンバー & 役割:</span>
+                                        <div className="flex flex-wrap gap-4 pt-1">
+                                            {groupMembers.map((m, i) => (
+                                                <span key={i} className="bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                                                    {m.name} ({m.role})
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 4R Content Summary Table */}
+                                    <div className="space-y-4 text-xs sm:text-sm">
+                                        {/* 1R */}
+                                        <div className="border border-slate-400 rounded overflow-hidden">
+                                            <div className="bg-slate-200 font-bold p-2 border-b border-slate-400 flex justify-between">
+                                                <span>第1ラウンド（現状把握）：どんな危険が潜んでいるか</span>
+                                            </div>
+                                            <div className="p-3 space-y-1.5 bg-white">
+                                                {r1Notes.map((n, i) => (
+                                                    <div key={i} className={`p-1.5 rounded ${n.dangerPoint ? 'font-bold bg-amber-50 border-l-4 border-amber-500' : ''}`}>
+                                                        ・ {n.text} <span className="text-[10px] text-slate-400">({n.author})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 2R */}
+                                        <div className="border border-slate-400 rounded overflow-hidden">
+                                            <div className="bg-red-100 font-bold p-2 border-b border-slate-400 text-red-950">
+                                                第2ラウンド（本質追求）：これが危険のポイントだ
+                                            </div>
+                                            <div className="p-3 bg-red-50/50 font-bold text-red-900">
+                                                ⚠️ {r2KeyDanger || '（未設定）'}
+                                            </div>
+                                        </div>
+
+                                        {/* 3R */}
+                                        <div className="border border-slate-400 rounded overflow-hidden">
+                                            <div className="bg-slate-200 font-bold p-2 border-b border-slate-400">
+                                                第3ラウンド（対策樹立）：あなたならどうする
+                                            </div>
+                                            <div className="p-3 space-y-1 bg-white">
+                                                {r3Notes.map((n, i) => (
+                                                    <div key={i}>・ {n.text}</div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 4R */}
+                                        <div className="border-2 border-emerald-600 rounded overflow-hidden">
+                                            <div className="bg-emerald-600 text-white font-bold p-2 flex justify-between">
+                                                <span>第4ラウンド（目標設定）：私たちはこうする</span>
+                                            </div>
+                                            <div className="p-4 bg-emerald-50 space-y-3">
+                                                <div>
+                                                    <span className="text-xs font-bold text-emerald-800 uppercase block">チーム行動目標:</span>
+                                                    <p className="text-base font-black text-slate-900">「{r4TeamGoal}」</p>
+                                                </div>
+                                                <div className="pt-2 border-t border-emerald-200">
+                                                    <span className="text-xs font-bold text-emerald-800 uppercase block">指さし呼称項目:</span>
+                                                    <p className="text-base font-black text-emerald-950">👉 {r4ActionItem} ヨシ！</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 text-center text-[10px] text-slate-400 border-t border-slate-200">
+                                        KYT-Lab 工業高校向け危険予知トレーニングシステム 自動出力ファイル
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-slate-900 text-slate-400 text-xs py-4 px-6 text-center border-t border-slate-800 mt-auto">
+                        <p>© 2026 KYT-Lab - 工業高校生のための危険予知トレーニング協調学習プラットフォーム</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
