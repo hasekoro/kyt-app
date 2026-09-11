@@ -6,20 +6,20 @@
     <title>KYT-Lab | 工業高校向け危険予知トレーニング</title>
     
     <!-- 【外部ライブラリの読み込み】 -->
-    <!-- Tailwind CSS: ユーティリティファーストのCSSフレームワーク -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome: アイコン表示用ライブラリ -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: 日本語フォント (Noto Sans JP) -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- React & ReactDOM: UI構築用ライブラリ (UMD版) -->
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel Standalone: JSX構文をブラウザ上でJavaScriptに変換するためのトランスパイラ -->
+    <!-- Babel Standalone -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- html2pdf.js: KYTシートをPDF出力・ダウンロードするためのライブラリ -->
+    <!-- html2pdf.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- 【Firebase 初期化設定 (ES Module)】 -->
@@ -29,29 +29,15 @@
         import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // 環境変数からAppIDおよびFirebase設定を取得（未定義の場合はテスト用デフォルト値を使用）
-       <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBXobhm4V5DxpMY4CyxLb2PeyPbuvoDYII",
-    authDomain: "kyt-learning-app.firebaseapp.com",
-    projectId: "kyt-learning-app",
-    storageBucket: "kyt-learning-app.firebasestorage.app",
-    messagingSenderId: "759933092191",
-    appId: "1:759933092191:web:5ea7b9699e6f9e020eb6ea",
-    measurementId: "G-JTEJDQENWN"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'kyt-industrial-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "dummy-key",
+            authDomain: "dummy.firebaseapp.com",
+            projectId: "dummy-project",
+            storageBucket: "dummy.appspot.com",
+            messagingSenderId: "123456",
+            appId: "1:123456:web:123456"
+        };
 
         // Firebaseアプリおよび認証・データベースインスタンスの初期化
         const app = initializeApp(firebaseConfig);
@@ -81,7 +67,7 @@
     </script>
 
     <script>
-        // Tailwind CSSのカスタムテーマ設定（カラーパレット拡張など）
+        // Tailwind CSSのカスタムテーマ設定
         tailwind.config = {
             theme: {
                 extend: {
@@ -147,7 +133,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // 【初期KYT問題データセット（機械・電気・建築・化学などの標準サンプル）】
+        // 【初期KYT問題データセット】
         const INITIAL_PROBLEMS = [
             {
                 id: 'p1',
@@ -204,9 +190,7 @@
         ];
 
         function App() {
-            // --- 【ステート（状態管理）定義】 ---
-            
-            // KYT問題リスト (ローカルストレージおよびクラウドと連動)
+            // KYT問題リスト
             const [problems, setProblems] = React.useState(() => {
                 const saved = localStorage.getItem('kyt_problems');
                 return saved ? JSON.parse(saved) : INITIAL_PROBLEMS;
@@ -214,7 +198,7 @@
             
             // 学科フィルタおよび現在表示中のタブ画面
             const [selectedCategory, setSelectedCategory] = React.useState('すべて');
-            const [currentTab, setCurrentTab] = React.useState('library'); // 'library' | 'check_mode' | 'workshop_mode' | 'create_problem' | 'feedback' | 'export_preview'
+            const [currentTab, setCurrentTab] = React.useState('library');
             const [selectedProblem, setSelectedProblem] = React.useState(INITIAL_PROBLEMS[0]);
             
             // Firebase 認証・リアルタイム接続フラグ
@@ -226,7 +210,7 @@
             const [roomCode, setRoomCode] = React.useState('1004');
             const [inputRoomCode, setInputRoomCode] = React.useState('1004');
             const [userName, setUserName] = React.useState('工業太郎');
-            const [userRole, setUserRole] = React.useState('進行役'); // 進行役, 記録役, メンバー
+            const [userRole, setUserRole] = React.useState('進行役');
             const [groupMembers, setGroupMembers] = React.useState([
                 { name: '工業太郎', role: '進行役' },
                 { name: '高専花子', role: '記録役' },
@@ -234,24 +218,20 @@
                 { name: '名城次郎', role: 'メンバー' }
             ]);
 
-            // 危険チェックモードで選択中のピン(ホットスポット)
+            // 危険チェックモードで選択中のピン
             const [activeHotspot, setActiveHotspot] = React.useState(null);
 
             // --- 4R（4ラウンド）ワークショップ状態データ ---
-            // 1R: 現状把握 (投稿された危険要因付箋)
             const [r1Notes, setR1Notes] = React.useState([
                 { id: 1, author: '工業太郎', text: '主軸回転中に軍手を使って作業している', dangerPoint: true },
                 { id: 2, author: '高専花子', text: '保護メガネをしていないので切粉が目に入る', dangerPoint: false },
                 { id: 3, author: '愛知一郎', text: '足元に切粉が散乱していて滑りそう', dangerPoint: false }
             ]);
-            // 2R: 本質追求 (絞り込んだ危険のポイント)
             const [r2KeyDanger, setR2KeyDanger] = React.useState('軍手が旋盤の回転部に巻き込まれ、指や手を骨折・切断する危険がある（危険のポイント）');
-            // 3R: 対策樹立 (具体的な対策案)
             const [r3Notes, setR3Notes] = React.useState([
                 { id: 1, author: '名城次郎', text: '旋盤作業時は軍手を脱いで素手で作業する' },
                 { id: 2, author: '工業太郎', text: '作業前チェックシートで服装を相互確認する' }
             ]);
-            // 4R: 目標設定 (チーム行動目標 & 指さし呼称)
             const [r4TeamGoal, setR4TeamGoal] = React.useState('回転作業は素手で実施、着衣ヨシ！');
             const [r4ActionItem, setR4ActionItem] = React.useState('旋盤操作前に「手袋はずして素手ヨシ！」と指さし呼称を行う。');
 
@@ -269,13 +249,12 @@
             // トースト通知メッセージ制御
             const [toastMessage, setToastMessage] = React.useState('');
 
-            // トーストメッセージ表示用ヘルパー関数
             const showToast = (msg) => {
                 setToastMessage(msg);
                 setTimeout(() => setToastMessage(''), 3000);
             };
 
-            // --- 【Firebase 匿名認証の初期化エフェクト】 ---
+            // --- 【Firebase 匿名認証】 ---
             React.useEffect(() => {
                 const initAuth = async () => {
                     if (!window.FirebaseApp) {
@@ -291,7 +270,6 @@
                             await signInAnonymously(auth);
                         }
                     } catch (err) {
-                        console.warn("カスタムトークン認証に失敗。匿名認証へフォールバックします:", err);
                         try { await signInAnonymously(auth); } catch(e){ console.error(e); }
                     }
 
@@ -305,7 +283,7 @@
                 initAuth();
             }, []);
 
-            // --- 【Firestore：KYT問題データのリアルタイム自動同期】 ---
+            // --- 【Firestore：問題データ同期】 ---
             React.useEffect(() => {
                 if (!dbReady || !user || !window.FirebaseApp) return;
                 const { db, collection, onSnapshot, appId } = window.FirebaseApp;
@@ -319,19 +297,16 @@
                             cloudProbs.push({ id: docSnap.id, ...docSnap.data() });
                         });
                         if (cloudProbs.length > 0) {
-                            // クラウドデータと初期デフォルトデータをマージ
                             const merged = [...cloudProbs, ...INITIAL_PROBLEMS.filter(p => !cloudProbs.some(cp => cp.id === p.id))];
                             setProblems(merged);
                         }
                     },
-                    (error) => {
-                        console.error("Firestore 問題データ同期エラー:", error);
-                    }
+                    (error) => console.error(error)
                 );
                 return () => unsubscribe();
             }, [dbReady, user]);
 
-            // --- 【Firestore：ルームデータ(4Rワークシート)のリアルタイム自動同期】 ---
+            // --- 【Firestore：ルームデータ同期】 ---
             React.useEffect(() => {
                 if (!dbReady || !user || !window.FirebaseApp || !roomCode) return;
                 const { db, doc, onSnapshot, appId } = window.FirebaseApp;
@@ -354,14 +329,12 @@
                             }
                         }
                     },
-                    (error) => {
-                        console.error("Firestore ルームデータ同期エラー:", error);
-                    }
+                    (error) => console.error(error)
                 );
                 return () => unsubscribe();
             }, [dbReady, user, roomCode, problems]);
 
-            // --- 【Firestore：フィードバック・評価データのリアルタイム自動同期】 ---
+            // --- 【Firestore：フィードバック同期】 ---
             React.useEffect(() => {
                 if (!dbReady || !user || !window.FirebaseApp || !roomCode) return;
                 const { db, collection, onSnapshot, appId } = window.FirebaseApp;
@@ -381,14 +354,11 @@
                             setSheetFeedbacks(roomFeedbacks);
                         }
                     },
-                    (error) => {
-                        console.error("Firestore フィードバック同期エラー:", error);
-                    }
+                    (error) => console.error(error)
                 );
                 return () => unsubscribe();
             }, [dbReady, user, roomCode]);
 
-            // ルームの編集内容をクラウド(Firestore)へ保存する共通処理
             const syncRoomData = async (updatedFields) => {
                 if (!dbReady || !user || !window.FirebaseApp || !roomCode) return;
                 setIsSyncing(true);
@@ -408,18 +378,16 @@
                         ...updatedFields
                     }, { merge: true });
                 } catch (err) {
-                    console.error("ルームデータのクラウド保存に失敗:", err);
+                    console.error(err);
                 } finally {
                     setIsSyncing(false);
                 }
             };
 
-            // ローカルストレージバックアップ保存
             React.useEffect(() => {
                 localStorage.setItem('kyt_problems', JSON.stringify(problems));
             }, [problems]);
 
-            // ワンタップでグループ内の役割（進行役・記録役など）をランダムにシャッフル割り当て
             const handleRandomRoles = () => {
                 const roles = ['進行役', '記録役', 'メンバー', 'メンバー'];
                 const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
@@ -431,13 +399,11 @@
                 const me = updated.find(m => m.name === userName);
                 if (me) setUserRole(me.role);
                 syncRoomData({ groupMembers: updated });
-                showToast('🎲 役割をランダムに再割り当て（クラウド同期完了）');
+                showToast('🎲 役割をランダムに再割り当てしました');
             };
 
-            // 専門学科フィルタカテゴリ
             const categories = ['すべて', '機械科', '電気科', '建築・土木科', '化学科', '共通'];
 
-            // 選択されている学科タグに応じた表示対象問題のフィルタリング
             const filteredProblems = selectedCategory === 'すべて' 
                 ? problems 
                 : problems.filter(p => p.category === selectedCategory);
@@ -459,10 +425,9 @@
                                 </div>
                             </div>
 
-                            {/* Room Status & Cloud Sync Indicator */}
+                            {/* Room Status */}
                             <div className="flex flex-wrap items-center bg-slate-800 rounded-xl px-4 py-2 border border-slate-700 gap-3 text-sm">
-                                {/* Cloud Status Badge */}
-                                <div className="flex items-center gap-1.5 text-xs font-bold" title={dbReady ? "クラウド接続済み" : "接続中..."}>
+                                <div className="flex items-center gap-1.5 text-xs font-bold">
                                     <span className={`w-2.5 h-2.5 rounded-full ${dbReady ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
                                     <span className="text-slate-300 hidden sm:inline">{dbReady ? 'クラウド連携済' : '接続中...'}</span>
                                     {isSyncing && <i className="fa-solid fa-rotate text-brand-500 animate-spin text-xs"></i>}
@@ -470,7 +435,6 @@
 
                                 <div className="h-4 w-px bg-slate-700 hidden sm:block"></div>
 
-                                {/* Room Code Input / Switch */}
                                 <div className="flex items-center gap-1.5">
                                     <span className="text-slate-400 text-xs">ルーム:</span>
                                     <input 
@@ -505,7 +469,6 @@
                                 <button 
                                     onClick={handleRandomRoles} 
                                     className="bg-slate-700 hover:bg-slate-600 text-xs px-2.5 py-1 rounded-lg text-slate-200 transition font-medium flex items-center gap-1 border border-slate-600"
-                                    title="ワンタップで進行役・記録役をランダム設定"
                                 >
                                     <i className="fa-solid fa-dice text-brand-500"></i>
                                     役割割り当て
@@ -560,7 +523,6 @@
                         {/* TAB 1: Problem Library */}
                         {currentTab === 'library' && (
                             <div className="space-y-6">
-                                {/* Top Banner */}
                                 <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 shadow-xl border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-6">
                                     <div className="space-y-2 max-w-2xl">
                                         <div className="inline-block px-3 py-1 bg-brand-500 text-slate-900 text-xs font-black rounded-full mb-1">
@@ -582,7 +544,6 @@
                                     </div>
                                 </div>
 
-                                {/* Discipline Category Filter */}
                                 <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
                                     <span className="text-sm font-bold text-slate-500 whitespace-nowrap mr-2">学科タグ:</span>
                                     {categories.map((cat) => (
@@ -600,7 +561,6 @@
                                     ))}
                                 </div>
 
-                                {/* Problem Cards Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                                     {filteredProblems.map((prob) => (
                                         <div key={prob.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col justify-between">
@@ -647,7 +607,6 @@
                             </div>
                         )}
 
-                        {}
                         {/* TAB 2: Quick Danger Check Mode */}
                         {currentTab === 'check_mode' && (
                             <div className="space-y-6">
@@ -675,7 +634,6 @@
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    {/* Image Canvas Container with Hotspots */}
                                     <div className="lg:col-span-2 bg-slate-900 rounded-2xl p-4 shadow-md border border-slate-800 space-y-3">
                                         <div className="flex justify-between items-center text-xs text-slate-400">
                                             <span><i className="fa-solid fa-hand-pointer mr-1 text-brand-500"></i> 画像内の赤ピンをタップすると危険と対策が表示されます</span>
@@ -692,7 +650,6 @@
                                                 }}
                                             />
 
-                                            {/* Hotspot Pins Overlay */}
                                             {selectedProblem.hotspots.map((spot, index) => (
                                                 <button
                                                     key={spot.id}
@@ -710,7 +667,6 @@
                                         </div>
                                     </div>
 
-                                    {/* Hotspot Details / Inspector Panel */}
                                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between space-y-4">
                                         <div>
                                             <h3 className="font-bold text-lg text-slate-900 pb-3 border-b border-slate-200 flex items-center gap-2">
@@ -753,7 +709,6 @@
                                             )}
                                         </div>
 
-                                        {/* All Hotspots Quick List */}
                                         <div className="pt-4 border-t border-slate-200 space-y-2">
                                             <span className="text-xs font-bold text-slate-500">発見されたポイント一覧:</span>
                                             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -778,11 +733,9 @@
                             </div>
                         )}
 
-                        {}
                         {/* TAB 3: 4R Workshop Mode */}
                         {currentTab === 'workshop_mode' && (
                             <div className="space-y-6">
-                                {/* Workshop Room Header */}
                                 <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-800 space-y-4">
                                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                                         <div>
@@ -806,7 +759,6 @@
                                         </div>
                                     </div>
 
-                                    {/* Member Role Cards Bar */}
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-800">
                                         {groupMembers.map((m, idx) => (
                                             <div key={idx} className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/60 flex items-center justify-between">
@@ -821,10 +773,9 @@
                                     </div>
                                 </div>
 
-                                {/* 4R Steps Layout */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                                    {/* 1R: 危険の発見 (発見された危険アイデア付箋) */}
+                                    {/* 1R */}
                                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
@@ -835,7 +786,6 @@
                                             </div>
                                             <p className="text-xs text-slate-500">全員で危険と思われる状態・行動を出し合います。</p>
 
-                                            {/* Add Sticky Note Input */}
                                             <div className="flex gap-2">
                                                 <input 
                                                     type="text" 
@@ -869,7 +819,6 @@
                                                 </button>
                                             </div>
 
-                                            {/* Sticky Notes Grid */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                                                 {r1Notes.map((note) => (
                                                     <div 
@@ -905,7 +854,7 @@
                                         </div>
                                     </div>
 
-                                    {/* 2R: 本質追求 (危険のポイント選定) */}
+                                    {/* 2R */}
                                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
@@ -934,7 +883,7 @@
                                         </div>
                                     </div>
 
-                                    {/* 3R: 対策樹立 (具体策ブレスト) */}
+                                    {/* 3R */}
                                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
@@ -945,7 +894,6 @@
                                             </div>
                                             <p className="text-xs text-slate-500">2Rの危険ポイントに対する具体的で実現可能な対策案を出します。</p>
 
-                                            {/* Add Countermeasure Input */}
                                             <div className="flex gap-2">
                                                 <input 
                                                     type="text" 
@@ -990,7 +938,7 @@
                                         </div>
                                     </div>
 
-                                    {/* 4R: 目標設定 (チーム行動目標 & 指さし呼称) */}
+                                    {/* 4R */}
                                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4 flex flex-col justify-between">
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
@@ -1041,8 +989,7 @@
                             </div>
                         )}
 
-                        {}
-                        {/* TAB 4: Create / Edit Custom KYT Problem */}
+                        {/* TAB 4: Create Problem */}
                         {currentTab === 'create_problem' && (
                             <div className="max-w-4xl mx-auto bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
                                 <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
@@ -1076,11 +1023,9 @@
                                         ]
                                     };
 
-                                    // Local update
                                     setProblems([newProb, ...problems]);
                                     setSelectedProblem(newProb);
 
-                                    // Firebase Cloud Save
                                     if (dbReady && user && window.FirebaseApp) {
                                         try {
                                             const { db, collection, addDoc, appId } = window.FirebaseApp;
@@ -1088,8 +1033,8 @@
                                             await addDoc(problemsCol, newProb);
                                             showToast('☁️ 画像・問題をクラウドに正常保存しました！');
                                         } catch (err) {
-                                            console.error("Cloud save error:", err);
-                                            showToast('ローカルに保存されました（クラウド保存エラー）');
+                                            console.error(err);
+                                            showToast('ローカルに保存されました');
                                         }
                                     } else {
                                         showToast('新問題を追加登録しました！');
@@ -1122,7 +1067,6 @@
                                         </div>
                                     </div>
 
-                                    {/* Image Upload & URL Section */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                                         <div className="space-y-2">
                                             <label className="text-xs font-bold text-slate-700 block">① 端末から画像をアップロード</label>
@@ -1133,15 +1077,12 @@
                                                     const file = e.target.files[0];
                                                     if (file) {
                                                         const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            setPreviewImage(reader.result);
-                                                        };
+                                                        reader.onloadend = () => setPreviewImage(reader.result);
                                                         reader.readAsDataURL(file);
                                                     }
                                                 }}
                                                 className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-500 file:text-slate-950 hover:file:bg-brand-600"
                                             />
-                                            <p className="text-[10px] text-slate-400">スマホ・PCの写真やイラストを選択できます。</p>
                                         </div>
 
                                         <div className="space-y-2">
@@ -1170,15 +1111,14 @@
                                         <textarea 
                                             name="probDesc"
                                             rows="2" 
-                                            placeholder="どのような作業を行っているシーンか分かりやすく記載してください。"
+                                            placeholder="どのような作業を行っているシーンか記載してください。"
                                             className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                                         ></textarea>
                                     </div>
 
-                                    {/* Primary Hotspot Data */}
                                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                                         <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
-                                            <i className="fa-solid fa-location-dot text-red-600"></i> 代表的な危険ピン設定（第1ポイント）
+                                            <i className="fa-solid fa-location-dot text-red-600"></i> 代表的な危険ピン設定
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                             <input name="spotTitle" placeholder="危険の名称 (例: 手袋着用)" className="p-2.5 bg-white border border-slate-300 rounded-lg text-xs" />
@@ -1197,17 +1137,15 @@
                             </div>
                         )}
 
-                        {}
-                        {/* TAB 5: Peer & Teacher Feedback */}
+                        {/* TAB 5: Feedback */}
                         {currentTab === 'feedback' && (
                             <div className="max-w-4xl mx-auto space-y-6">
                                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
                                     <div className="border-b border-slate-200 pb-3">
                                         <h2 className="text-xl font-bold text-slate-900">先生・他グループからの評価＆コメント</h2>
-                                        <p className="text-xs text-slate-500">ルーム 【{roomCode}】 の活動表に対するレビュー履歴です。（クラウド同期中）</p>
+                                        <p className="text-xs text-slate-500">ルーム 【{roomCode}】 の活動表に対するレビュー履歴です。</p>
                                     </div>
 
-                                    {/* Reviews List */}
                                     <div className="space-y-3">
                                         {sheetFeedbacks.map((fb) => (
                                             <div key={fb.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
@@ -1232,7 +1170,6 @@
                                         ))}
                                     </div>
 
-                                    {/* Add New Feedback Form */}
                                     <div className="pt-4 border-t border-slate-200 space-y-3">
                                         <h3 className="font-bold text-sm text-slate-800">新しいコメント・評価の投稿</h3>
                                         <div className="flex items-center gap-3">
@@ -1276,12 +1213,12 @@
                                                                 const feedbackCol = collection(db, 'artifacts', appId, 'public', 'data', 'kyt_feedbacks');
                                                                 await addDoc(feedbackCol, newFb);
                                                             } catch(err) {
-                                                                console.error("Feedback cloud save error:", err);
+                                                                console.error(err);
                                                             }
                                                         }
 
                                                         setNewFeedbackText('');
-                                                        showToast('フィードバックをクラウドに投稿しました！');
+                                                        showToast('フィードバックを投稿しました！');
                                                     }
                                                 }}
                                                 className="px-5 py-3 bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold rounded-xl text-sm transition shadow-sm"
@@ -1294,7 +1231,7 @@
                             </div>
                         )}
 
-                        {/* TAB 6: Official KYT Sheet PDF Preview & Print Layout */}
+                        {/* TAB 6: PDF Preview */}
                         {currentTab === 'export_preview' && (
                             <div className="space-y-6 max-w-4xl mx-auto">
                                 <div className="no-print flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
@@ -1327,15 +1264,12 @@
                                     </button>
                                 </div>
 
-                                {/* Official KYT Printable Document Form */}
                                 <div id="printable-kyt-sheet" className="bg-white p-8 rounded-none sm:rounded-2xl shadow-lg border border-slate-300 space-y-6 text-slate-900">
-                                    {/* Sheet Title Bar */}
                                     <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
                                         <p className="text-xs font-bold tracking-widest text-slate-500">工業高校危険予知活動（KYT）記録表</p>
                                         <h1 className="text-2xl font-black tracking-wider">4ラウンド KYT 活動シート</h1>
                                     </div>
 
-                                    {/* Meta Header Grid */}
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs border border-slate-400 p-3 bg-slate-50 rounded">
                                         <div><span className="font-bold text-slate-500">ルームNo:</span> {roomCode}</div>
                                         <div><span className="font-bold text-slate-500">対象課題:</span> {selectedProblem.title}</div>
@@ -1343,7 +1277,6 @@
                                         <div><span className="font-bold text-slate-500">学科:</span> {selectedProblem.category}</div>
                                     </div>
 
-                                    {/* Member Roles Summary */}
                                     <div className="text-xs border border-slate-300 p-3 rounded space-y-1">
                                         <span className="font-bold text-slate-700">参加メンバー & 役割:</span>
                                         <div className="flex flex-wrap gap-4 pt-1">
@@ -1355,9 +1288,7 @@
                                         </div>
                                     </div>
 
-                                    {/* 4R Content Summary Table */}
                                     <div className="space-y-4 text-xs sm:text-sm">
-                                        {/* 1R */}
                                         <div className="border border-slate-400 rounded overflow-hidden">
                                             <div className="bg-slate-200 font-bold p-2 border-b border-slate-400 flex justify-between">
                                                 <span>第1ラウンド（現状把握）：どんな危険が潜んでいるか</span>
@@ -1371,7 +1302,6 @@
                                             </div>
                                         </div>
 
-                                        {/* 2R */}
                                         <div className="border border-slate-400 rounded overflow-hidden">
                                             <div className="bg-red-100 font-bold p-2 border-b border-slate-400 text-red-950">
                                                 第2ラウンド（本質追求）：これが危険のポイントだ
@@ -1381,7 +1311,6 @@
                                             </div>
                                         </div>
 
-                                        {/* 3R */}
                                         <div className="border border-slate-400 rounded overflow-hidden">
                                             <div className="bg-slate-200 font-bold p-2 border-b border-slate-400">
                                                 第3ラウンド（対策樹立）：あなたならどうする
@@ -1393,7 +1322,6 @@
                                             </div>
                                         </div>
 
-                                        {/* 4R */}
                                         <div className="border-2 border-emerald-600 rounded overflow-hidden">
                                             <div className="bg-emerald-600 text-white font-bold p-2 flex justify-between">
                                                 <span>第4ラウンド（目標設定）：私たちはこうする</span>
