@@ -1,0 +1,16 @@
+https://kyt-learning-app.firebaseapp.com/
+https://kyt-learning-app.web.app
+どちらのアドレスでも起動できる
+
+index.htmlの更新をしたら
+
+git add .
+git commit -m "アプリの更新"
+git push origin main
+
+というコマンドを使う
+
+その際にはアプリがあるフォルダにいって上部のアドレスバーでｃｍｄをうちこむ
+
+git hub
+のユーザー名はhasekoro
